@@ -5,29 +5,20 @@ description: Create voiced-over educational videos using Manim and ElevenLabs TT
 
 # Manim Video Creator
 
-You create fully voiced-over educational videos using Manim and ElevenLabs TTS. Given a topic or description, you produce a complete `.py` file and render command.
+Create voiced-over educational videos using Manim + ElevenLabs TTS.
 
-## Prerequisites
+## Setup
 
-Before first use, ensure dependencies are installed:
 ```bash
 pip install manim "manim-voiceover-plus[elevenlabs]"
 brew install sox  # macOS (apt install sox for Linux)
 ```
 
-The user's `ELEVEN_API_KEY` must be set as an environment variable.
-
-## Workflow
-
-1. **Understand the request** — Extract topic, key concepts, target duration (~30s default), and tone
-2. **Research if needed** — If the user says to research the topic first, do web searches before writing
-3. **Select voice** — Pick from the voice reference table (see `references/manim-guide.md`)
-4. **Write script** — Draft narration first. Keep sentences short (TTS works better with concise phrases)
-5. **Plan visuals** — For each narration segment, decide Manim objects and animations
-6. **Write code** — Single `.py` file using the VoiceoverScene pattern below
-7. **Render** — Provide the render command: `manim -pql video.py ClassName`
+Requires `ELEVEN_API_KEY` env var.
 
 ## Core Pattern
+
+The library is `manim-voiceover-plus` (not `manim-voiceover`). These are the exact imports:
 
 ```python
 from manim import *
@@ -47,25 +38,35 @@ class VideoName(VoiceoverScene):
             self.play(Create(shape), run_time=tracker.duration)
 ```
 
-Key rules:
-- Use `voice_id`, never `voice_name` (name lookup is unreliable)
-- Use `run_time=tracker.duration` to sync animations to audio
-- Break content into sections (methods: `intro_section`, `main_content`, `conclusion`)
-- Use bookmarks for word-level timing: `<bookmark mark='A'/>` in text, then `self.wait_until_bookmark("A")`
+## Gotchas
 
-## Rendering
+- **Use `voice_id`, never `voice_name`** — name lookup is unreliable
+- **`run_time=tracker.duration`** syncs animation length to audio. Without it, animations and voiceover drift.
+- **Bookmarks** for word-level timing: `<bookmark mark='A'/>` in text, then `self.wait_until_bookmark("A")`
+- **Short sentences** — TTS quality degrades with long narration blocks
+- **JSONDecodeError** — delete `media/voiceover/` cache folder and re-render
+- Audio is cached via SHA-256 hash in `media/voiceover/`. Same text + voice = reuses cache.
 
-```bash
-manim -pql video.py ClassName   # Low quality, fast preview
-manim -pqh video.py ClassName   # High quality (1080p)
-manim -pqk video.py ClassName   # 4K
+## Known Voice IDs
+
+IDs can vary by account. Fetch with:
+```python
+from elevenlabs import ElevenLabs
+client = ElevenLabs()
+for v in client.voices.get_all().voices:
+    print(f'{v.name}: {v.voice_id}')
 ```
+
+Defaults:
+- `JBFqnCBsd6RMkjVDRZzb` — George (warm storyteller)
+- `EXAVITQu4vr4xnSDxMaL` — Sarah (mature, confident)
+- `Xb7hH8MSUJpSbSDYk0k2` — Alice (clear educator)
+- `pFZP5JQG7iQjIQuC4Bku` — Lily (expressive)
 
 ## Verification
 
 After rendering, extract frames and verify visually:
 ```bash
-# Extract 8 evenly-spaced frames
 VIDEO="media/videos/video/480p15/ClassName.mp4"
 mkdir -p media/verification_frames
 DURATION=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$VIDEO")
@@ -76,7 +77,3 @@ done
 ```
 
 Then use a subagent to read each frame and compare against expected visuals.
-
-## Reference
-
-For the full voice list, Manim object/animation reference, troubleshooting, and complete examples, read `references/manim-guide.md` in this skill directory.
