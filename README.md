@@ -1,6 +1,6 @@
 # manim-skill
 
-A Claude Code skill that lets agents create voiced-over educational videos using Manim + ElevenLabs TTS. Prompt to rendered video in ~40 seconds.
+A Claude Code skill that lets agents create voiced-over educational videos using Manim + ElevenLabs TTS - agents can create and render videos very quickly, often <1 min
 
 ## Install
 
